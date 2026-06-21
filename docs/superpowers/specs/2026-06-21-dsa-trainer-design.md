@@ -153,7 +153,10 @@ Markdown rendering, a single command to start studying.
 - **Phase 0 — Skeleton:** Next.js app, SQLite + data layer, schema migrations,
   nav shell, Settings (API key). Seed a couple of patterns + a small problem set.
 - **Phase 1 — Content & reading:** Pattern list + detail, Markdown rendering
-  with code highlighting, section-level notes.
+  with code highlighting, section-level notes. Uses minimal **sample/placeholder**
+  Markdown only — enough to exercise rendering, sections, and notes. Writing the
+  real deep guides is a **separate authoring track** done after the app runs,
+  not part of this build plan.
 - **Phase 2 — Tracking:** Problems board, log-attempt popover, attempt history,
   status. (No SRS scheduling yet — status views work on the same data.)
 - **Phase 3 — Spaced repetition:** Reviews table + SM-2, due queue, Today
@@ -163,8 +166,11 @@ Markdown rendering, a single command to start studying.
 - **Phase 5 — Polish:** Activity heatmap, Stats screen, weakest-retention
   suggestion, refinements.
 
-Each phase is independently usable. Patterns coverage (which patterns, in what
-order) is a separate planning conversation and does not block the build.
+Each phase is independently usable. **Decision:** the build plan covers the app
+only; it ships with sample/placeholder content. All deep study content is
+authored separately, pattern by pattern, once the app is running. Patterns
+coverage (which patterns, in what order) is its own planning conversation and
+does not block the build.
 
 ## 12. Open questions
 
