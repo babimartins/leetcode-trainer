@@ -44,6 +44,28 @@ const problems: Array<[string, string, string, string]> = [
 ];
 problems.forEach((p) => insertProblem.run(...p));
 
+// Map each sample problem to its pattern (by slug) so Phase 1/2 fixtures are realistic.
+const linkPattern = db.prepare(
+  `INSERT OR IGNORE INTO problem_patterns (problem_id, pattern_id)
+   VALUES ((SELECT id FROM problems WHERE lc_slug = ?),
+           (SELECT id FROM patterns WHERE slug = ?))`
+);
+const problemPatterns: Array<[string, string]> = [
+  ["longest-substring-without-repeating-characters", "sliding-window"],
+  ["koko-eating-bananas", "binary-search"],
+  ["number-of-islands", "graphs-bfs-dfs"],
+];
+problemPatterns.forEach((m) => linkPattern.run(...m));
+
+// Put every sample problem on the "Blind 75" list.
+const linkSource = db.prepare(
+  `INSERT OR IGNORE INTO problem_sources (problem_id, source_id)
+   VALUES ((SELECT id FROM problems WHERE lc_slug = ?),
+           (SELECT id FROM sources WHERE name = ?))`
+);
+problems.forEach(([, slug]) => linkSource.run(slug, "Blind 75"));
+
 console.log(
-  `Seeded: ${patterns.length} patterns, ${problems.length} problems, 1 source.`
+  `Seeded: ${patterns.length} patterns, ${problems.length} problems, 1 source, ` +
+    `${problemPatterns.length} pattern links, ${problems.length} source links.`
 );

@@ -14,7 +14,9 @@ export function runMigrations(
   );
 
   const applied = new Set(
-    db.prepare("SELECT name FROM _migrations").all().map((r: any) => r.name)
+    (db.prepare("SELECT name FROM _migrations").all() as { name: string }[]).map(
+      (r) => r.name
+    )
   );
 
   const files = fs
@@ -28,6 +30,9 @@ export function runMigrations(
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    // Each migration runs inside a transaction for atomic rollback. Do NOT put
+    // transaction-breaking statements (COMMIT, BEGIN, or PRAGMAs that auto-commit)
+    // inside a migration .sql file — they defeat the atomicity guaranteed here.
     const tx = db.transaction(() => {
       db.exec(sql);
       record.run(file);

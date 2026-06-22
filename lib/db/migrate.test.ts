@@ -27,10 +27,11 @@ describe("runMigrations", () => {
     const applied = runMigrations(db, dir);
 
     expect(applied).toEqual(["0001_a.sql", "0002_b.sql"]);
-    const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-      .all()
-      .map((r: any) => r.name);
+    const tables = (
+      db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        .all() as { name: string }[]
+    ).map((r) => r.name);
     expect(tables).toContain("a");
     expect(tables).toContain("b");
     expect(tables).toContain("_migrations");
@@ -52,10 +53,11 @@ describe("runMigrations", () => {
     const db = new Database(":memory:");
 
     expect(() => runMigrations(db, dir)).toThrow();
-    const recorded = db
-      .prepare("SELECT name FROM _migrations ORDER BY name")
-      .all()
-      .map((r: any) => r.name);
+    const recorded = (
+      db.prepare("SELECT name FROM _migrations ORDER BY name").all() as {
+        name: string;
+      }[]
+    ).map((r) => r.name);
     expect(recorded).toEqual(["0001_ok.sql"]); // 0002 not recorded
   });
 });
