@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db/connection";
 import { getPatternBySlug } from "@/lib/db/patterns";
 import { listNotesForPattern, type NoteRow } from "@/lib/db/notes";
+import { listProblemsForPattern } from "@/lib/db/problemsForPattern";
 import { loadPatternContent } from "@/lib/content/loadPattern";
 import { splitSections } from "@/lib/content/sections";
 import { MarkdownView } from "@/components/MarkdownView";
@@ -22,6 +23,7 @@ export default async function PatternDetailPage({
   const content = loadPatternContent(slug);
   const sections = content ? splitSections(content) : [];
   const notes = listNotesForPattern(db, pattern.id);
+  const problems = listProblemsForPattern(db, pattern.id);
   const notesBySection = new Map<string, NoteRow[]>();
   for (const n of notes) {
     const list = notesBySection.get(n.section_key) ?? [];
@@ -97,6 +99,26 @@ export default async function PatternDetailPage({
           </form>
         </section>
       ))}
+      <section style={{ marginTop: 28, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+        <h2 style={{ fontSize: 16 }}>Problems in this pattern</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+          {problems.map((p) => (
+            <a
+              key={p.id}
+              href={p.lc_url ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6 }}
+            >
+              <span>{p.title}</span>
+              <span style={{ color: "var(--muted)", fontSize: 12 }}>{p.difficulty} ↗</span>
+            </a>
+          ))}
+          {problems.length === 0 && (
+            <p style={{ color: "var(--muted)" }}>No problems mapped yet.</p>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
