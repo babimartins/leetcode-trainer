@@ -95,7 +95,7 @@ phase-by-phase implementation plans live in
 
 - [x] **Phase 0 — Skeleton.** Next.js + SQLite, migration runner + schema, seed
   data, app shell with navigation, Settings screen persisting the API key.
-- [ ] **Phase 1 — Content & reading.** Pattern list/detail, Markdown rendering,
+- [x] **Phase 1 — Content & reading.** Pattern list/detail, Markdown rendering,
   section-level inline notes.
 - [ ] **Phase 2 — Tracking.** Problems board with filters and the reusable
   log-attempt popover; attempt history and status.
