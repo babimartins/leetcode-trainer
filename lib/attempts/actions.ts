@@ -27,7 +27,10 @@ export async function logAttemptAction(formData: FormData): Promise<void> {
     problemId,
     outcome,
     rating,
-    minutes: minutes != null && Number.isFinite(minutes) ? minutes : null,
+    minutes:
+      minutes != null && Number.isFinite(minutes) && minutes >= 0
+        ? Math.round(minutes)
+        : null,
     usedHint,
     reflection,
   });
