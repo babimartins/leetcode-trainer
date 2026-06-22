@@ -7,6 +7,8 @@ import { loadPatternContent } from "@/lib/content/loadPattern";
 import { splitSections } from "@/lib/content/sections";
 import { MarkdownView } from "@/components/MarkdownView";
 import { addNoteAction, deleteNoteAction } from "@/lib/notes/actions";
+import { LogAttemptForm } from "@/components/LogAttemptForm";
+import { logAttemptAction } from "@/lib/attempts/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -103,16 +105,15 @@ export default async function PatternDetailPage({
         <h2 style={{ fontSize: 16 }}>Problems in this pattern</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
           {problems.map((p) => (
-            <a
+            <LogAttemptForm
               key={p.id}
-              href={p.lc_url ?? "#"}
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6 }}
-            >
-              <span>{p.title}</span>
-              <span style={{ color: "var(--muted)", fontSize: 12 }}>{p.difficulty} ↗</span>
-            </a>
+              problemId={p.id}
+              problemTitle={p.title}
+              lcUrl={p.lc_url}
+              difficulty={p.difficulty}
+              revalidate={`/patterns/${slug}`}
+              action={logAttemptAction}
+            />
           ))}
           {problems.length === 0 && (
             <p style={{ color: "var(--muted)" }}>No problems mapped yet.</p>
