@@ -27,7 +27,8 @@ describe("MarkdownView", () => {
     // rehype-highlight tokenizes code into <span>s, so the text is split across
     // elements — assert against the code block's combined text content.
     const code = container.querySelector("pre code");
-    expect(code?.textContent).toContain("def slide");
-    expect(code?.className).toContain("language-python");
+    expect(code).not.toBeNull();
+    expect(code!.textContent).toContain("def slide");
+    expect(code!.className).toContain("language-python");
   });
 });
