@@ -16,9 +16,12 @@ usually live in separate places:
 Plus a typed **AI tutor** per topic — ask questions, get quizzed, or explain a
 concept back (Feynman-style "teach it back") and have it tell you what you missed.
 
-> **Status:** Phase 0 (the skeleton) is complete. The app runs, with navigation,
-> a database, and a Settings screen. The study, tracking, review, and tutor
-> features are planned in phases — see the [Roadmap](#roadmap).
+> **Status:** Phases 0–2 are complete. The app runs with navigation, a database,
+> and a Settings screen; a pattern reading experience with syntax-highlighted
+> content and section-level notes; and practice tracking — a filterable Problems
+> board and a reusable log-attempt popover that updates problem status. Spaced
+> repetition, the AI tutor, and polish are still to come — see the
+> [Roadmap](#roadmap).
 
 ## Tech stack
 
@@ -26,8 +29,8 @@ concept back (Feynman-style "teach it back") and have it tell you what you misse
   of server-side API routes / server actions.
 - **SQLite** via `better-sqlite3` — all progress data, with a tiny hand-written
   migration runner.
-- **Markdown** — study content lives as plain files on disk (planned for Phase 1),
-  rendered with syntax-highlighted code.
+- **Markdown** — study content lives as plain files on disk, rendered with
+  syntax-highlighted code.
 - **Vitest** + Testing Library — unit and component tests.
 
 All database access is server-side only; the Anthropic API key is stored locally
@@ -97,7 +100,7 @@ phase-by-phase implementation plans live in
   data, app shell with navigation, Settings screen persisting the API key.
 - [x] **Phase 1 — Content & reading.** Pattern list/detail, Markdown rendering,
   section-level inline notes.
-- [ ] **Phase 2 — Tracking.** Problems board with filters and the reusable
+- [x] **Phase 2 — Tracking.** Problems board with filters and the reusable
   log-attempt popover; attempt history and status.
 - [ ] **Phase 3 — Spaced repetition.** SM-2 scheduling, the due queue, and the
   Today screen (resume, quick-study, stats, activity heatmap).
