@@ -11,7 +11,7 @@ CREATE TABLE patterns (
 CREATE TABLE problems (
   id INTEGER PRIMARY KEY,
   title TEXT NOT NULL,
-  lc_slug TEXT,
+  lc_slug TEXT UNIQUE,
   lc_url TEXT,
   difficulty TEXT NOT NULL CHECK (difficulty IN ('Easy','Medium','Hard')),
   status TEXT NOT NULL DEFAULT 'not_started',
