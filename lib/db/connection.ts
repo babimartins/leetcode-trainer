@@ -1,4 +1,6 @@
-import "server-only";
+// Server/CLI-only module. Do NOT import from client components — better-sqlite3
+// is a native module (kept out of the client bundle via serverExternalPackages
+// in next.config.ts). Used by server code and the migrate/seed scripts.
 import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
