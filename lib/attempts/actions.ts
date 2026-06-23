@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db/connection";
 import { logAttempt, type Outcome, type Rating } from "@/lib/db/attempts";
+import { recordReview } from "@/lib/db/reviews";
+import { todayIso } from "@/lib/srs/dates";
 
 const OUTCOMES: Outcome[] = ["solved", "partial", "failed"];
 const RATINGS: Rating[] = ["hard", "ok", "easy"];
@@ -34,6 +36,10 @@ export async function logAttemptAction(formData: FormData): Promise<void> {
     usedHint,
     reflection,
   });
+
+  if (rating) {
+    recordReview(getDb(), "problem", problemId, rating, todayIso());
+  }
 
   const revalidate = String(formData.get("revalidate") ?? "") || "/problems";
   revalidatePath(revalidate);

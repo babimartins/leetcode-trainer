@@ -9,6 +9,7 @@ import { MarkdownView } from "@/components/MarkdownView";
 import { addNoteAction, deleteNoteAction } from "@/lib/notes/actions";
 import { LogAttemptForm } from "@/components/LogAttemptForm";
 import { logAttemptAction } from "@/lib/attempts/actions";
+import { recordPatternReviewAction } from "@/lib/reviews/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,33 @@ export default async function PatternDetailPage({
   return (
     <main style={{ padding: 24, maxWidth: 760 }}>
       <h1>{pattern.name}</h1>
+      <form
+        action={recordPatternReviewAction}
+        style={{ display: "flex", gap: 8, alignItems: "center", margin: "8px 0 4px" }}
+      >
+        <input type="hidden" name="patternId" value={pattern.id} />
+        <input type="hidden" name="slug" value={slug} />
+        <span style={{ fontSize: 12, color: "var(--muted)" }}>Review this pattern:</span>
+        {(["hard", "ok", "easy"] as const).map((r) => (
+          <button
+            key={r}
+            type="submit"
+            name="rating"
+            value={r}
+            style={{
+              padding: "4px 12px",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--fg)",
+              cursor: "pointer",
+              textTransform: "capitalize",
+            }}
+          >
+            {r}
+          </button>
+        ))}
+      </form>
       {!content && (
         <p style={{ color: "var(--muted)" }}>
           No study content yet for this pattern.
