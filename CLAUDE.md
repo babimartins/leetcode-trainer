@@ -38,6 +38,22 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - **Atomic multi-step updates**: Use `db.transaction(...)` to ensure related writes happen atomically (e.g., `logAttempt` inserts an attempt and updates problem status together). Declare the tx function, call it, and return the result.
 - **Traversing relationships via JOIN**: To query across a junction table (e.g., `listProblemsForPattern` joins `problem_patterns` to `problems`), alias the tables in the SQL, select columns with table prefix, and return a `Row` interface matching all fetched columns. See `lib/db/problemsForPattern.ts` for an example.
 - **Dynamic filter building**: For query functions with optional filters (e.g., `listProblems`), build WHERE conditions conditionally in a `where: string[]` array with a parallel `params: unknown[]` array. Check non-empty values before appending (`if (filters.field) { where.push(...); params.push(...); }`). Join conditions with `AND` and bind all filter values with `?` placeholders — never interpolate strings. Use correlated subqueries (`SELECT ... FROM ... WHERE ... LIMIT 1`) to fetch aggregate/latest related data, and `EXISTS (SELECT 1 FROM ... JOIN ... WHERE ...)` to filter by junction-table relationships with bound parameters. See `lib/db/problemsList.ts` for a complete example.
+- **Upsert pattern**: For insert-or-update operations on unique constraints, use `INSERT ... ON CONFLICT(constraint_col) DO UPDATE SET col = excluded.col` to atomically update fields if the unique constraint is violated. See `lib/db/reviews.ts` and `lib/db/appState.ts` for examples.
+- **Stateful schedule updates**: For spaced-repetition or other state-advancing updates (e.g., `recordReview`), always read the current state first via a getter (e.g., `getReviewState`), compute the next state from it, then upsert. This ensures subsequent reviews correctly advance the schedule — the upsert does not need manual state re-reading between calls.
+
+### Pure Algorithm & Utility Modules (`lib/<domain>/`)
+
+- For math, scheduling, or date algorithms without DB or React dependencies, create a domain-specific module (e.g., `lib/srs/sm2.ts`, `lib/srs/dates.ts`).
+- Export typed interfaces for state (e.g., `ReviewState`), constrained type unions for inputs (e.g., `Rating = "hard" | "ok" | "easy"`), and pure functions taking these types.
+- Define algorithm constants (e.g., `EASE_FLOOR = 1.3`) at module scope. Create helper functions for repeated numeric operations (e.g., `round2 = (n: number) => Math.round(n * 100) / 100`).
+- For date arithmetic, use `Date.UTC()` for timezone-safe operations and return ISO `YYYY-MM-DD` strings. Test with vitest via `describe` + `it` blocks, asserting exact numeric/string outputs.
+- **Consecutive streak pattern**: For streak queries, fetch all distinct dates as a Set, then walk backward from `today` via `cursor = addDays(cursor, -1)` while `dates.has(cursor)`, incrementing a counter. Stops at the first gap. Ensure today is included only if an attempt exists for it.
+
+### Aggregate Query Modules (`lib/db/stats.ts`)
+
+- For derived metrics (counts, streaks, latest records), create a dedicated `stats.ts` module. Export typed result interfaces (e.g., `ResumeProblem`) and query functions that take `db: Database.Database`.
+- Cast COUNT query results to `{ c: number }` and access `.c` property. For row-returning queries, cast to the result interface and return `row ?? null` for optional single results.
+- Test aggregate queries with in-memory databases and seed data via `beforeEach`, asserting numeric/object results exactly.
 
 ### Markdown & Code Highlighting
 
@@ -64,6 +80,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - Call a query function (e.g., `listPatterns(getDb())`) and render as styled `<Link>` wrappers with `href={"/resource/<slug>"}`.
 - Each link displays bold name + muted metadata (status, count, etc.) side-by-side using flexbox.
 - Use inline styles with CSS variables (`var(--border)`, `var(--muted)`, `var(--fg)`) for theming consistency.
+- **Reusable style objects**: Extract repeated inline style patterns into module-level `const` objects annotated with `as const` (e.g., `const card = { flex: 1, border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" } as const;`). Reuse via object spread: `style={card}` or `style={{ ...card, display: "inline-block" }}`. Keeps styling DRY and composable.
 - **Filter form pattern**: For pages with server-side filtering, use `<form method="get">` with selects/inputs carrying `defaultValue={filters.field}` to persist filters across form submissions. Include a "Clear" link (e.g., `href="/problems"`) to reset to the default unfiltered view.
 
 ### Server Actions (Mutations)
@@ -72,8 +89,9 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - Validate inputs early: trim string fields, coerce numeric fields via `Number()`, check for empty/falsy values, and early-return on guard failure (no-op).
 - For enum fields, define a const array of valid values at the module level and validate via `.includes()`: `const OUTCOMES: Outcome[] = ["solved", "partial", "failed"]; ... if (!OUTCOMES.includes(outcome)) return;`. For optional enums, cast to string first, check inclusion, then cast to typed const only if valid.
 - For optional numeric fields, use `Number.isFinite()` after coercion to guard against NaN: `const num = Number(str); ... ? (Number.isFinite(num) ? num : null) : null`.
+- **Conditional secondary mutations**: If a server action must trigger an optional secondary DB operation based on a validated optional field (e.g., `recordReview` when `rating` is non-null), validate and coerce the optional field early, then check it conditionally before calling the secondary helper: `if (rating) { recordReview(...); }`. This avoids re-parsing and keeps the flow clear.
 - Call DB helpers via `getDb()` and always call `revalidatePath(\`/patterns/${slug}\`)` (or equivalent) after a successful mutation for ISR refresh.
-- **Context-aware revalidation paths**: When a client component (e.g., a form used across multiple pages) needs ISR refresh, pass the revalidation path as a prop (e.g., `revalidate="/patterns/{slug}"`) rather than hardcoding. The component forwards it via a hidden input to the server action.
+- **Context-aware revalidation paths**: When a client component (e.g., a form used across multiple pages) needs ISR refresh, pass the revalidation path as a prop (e.g., `revalidate="/patterns/{slug}"`) rather than hardcoding. The component forwards it via a hidden input to the server action. In the server action, accept the optional revalidate field and use a fallback: `const revalidate = String(formData.get("revalidate") ?? "") || "/default/path"; revalidatePath(revalidate);`.
 
 ### Client Components (Interactive UI)
 
@@ -81,4 +99,5 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - To integrate with server mutations, receive the action as a **prop** (e.g., `action: (formData: FormData) => void | Promise<void>`). This decouples the component from server code and enables unit testing.
 - Client components manage local state (form visibility, selection, input values) via `useState`. Use `<form action={action}>` to submit data; hidden inputs carry derived state or metadata.
 - **Popover/toggle form pattern**: For forms toggled by a button, use `useState(false)` for `open`. Conditionally render the form with `{open && <form>}`. Declare all hidden inputs (outcome, rating, etc.) unconditionally inside the form so they persist in the DOM when open; wire them to state via `onChange`. Disable submit until a required field is selected: `disabled={fieldValue === ""}`. This ensures the server receives all data only when intentional.
+- **Multi-button server-action form**: For inline forms with multiple mutually-exclusive actions (e.g., rating choices Hard/OK/Easy), use multiple `<button type="submit">` with the same `name` and different `value` attributes. The server reads `formData.get(name)` to detect which button was clicked. No client state needed — inline styles with CSS variables; often used for quick feedback forms.
 - Test client components in isolation with `@testing-library/react` and `fireEvent`, passing a no-op action. Under Vitest with `jsdom`, the `"use client"` directive is inert — the component renders as a normal React component. No new testing dependencies needed.
