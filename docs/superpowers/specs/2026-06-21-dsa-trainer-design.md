@@ -78,7 +78,9 @@ Markdown rendering, a single command to start studying.
 - After logging an attempt (problem) or a recall session (pattern), the
   self-rating maps to an SM-2 quality score.
 - **Easy** lengthens the interval (× higher factor), **OK** moderate growth,
-  **Hard** snaps the interval back to ~1–2 days and lowers ease.
+  **Hard** advances the interval only slightly (×1.2) and lowers ease so future
+  growth is gentler. (Decided in Phase 3: "Hard" means "got it but it was tough,"
+  not a full reset — Anki "Hard"-like rather than "Again"-like.)
 - A reviewable item is **due** when `due_date <= today`. The Today screen and
   Review queue surface due items.
 - **The computed interval is deliberately NOT shown on the rating buttons** —
