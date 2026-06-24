@@ -16,14 +16,16 @@ usually live in separate places:
 Plus a typed **AI tutor** per topic — ask questions, get quizzed, or explain a
 concept back (Feynman-style "teach it back") and have it tell you what you missed.
 
-> **Status:** Phases 0–4 are complete. The app runs with navigation, a database,
-> and a Settings screen; a pattern reading experience with syntax-highlighted
-> content and section-level notes; practice tracking — a filterable Problems
-> board and a reusable log-attempt popover; spaced repetition — SM-2 scheduling,
-> a Review queue, and a Today screen with streak, stats, and the day's due items;
-> and an AI tutor on each pattern page (grounded in that pattern's notes, with a
-> "Teach it back" mode) backed by your Anthropic API key. Only the final polish
-> (Phase 5) is left — see the [Roadmap](#roadmap).
+> **Status:** All build phases (0–5) are complete. The app runs with navigation,
+> a database, and a Settings screen; a pattern reading experience with
+> syntax-highlighted content and section-level notes; practice tracking — a
+> filterable Problems board and a reusable log-attempt popover; spaced repetition
+> — SM-2 scheduling, a Review queue, and a Today screen with streak, stats, an
+> activity heatmap, and a weakest-retention "study a pattern" suggestion; an AI
+> tutor on each pattern page (grounded in that pattern's notes, with a "Teach it
+> back" mode) backed by your Anthropic API key; and a Stats screen with a
+> solved-by-difficulty breakdown and per-pattern mastery. See the
+> [Roadmap](#roadmap) for what's intentionally deferred.
 
 ## Tech stack
 
@@ -49,8 +51,8 @@ npm run seed     # insert sample patterns, problems, and their links
 npm run dev      # start the app at http://localhost:3000
 ```
 
-To use the AI tutor (later phase), open **Settings** and paste your Anthropic API
-key — it is stored in the local database, server-side only.
+To use the AI tutor, open **Settings** and paste your Anthropic API key — it is
+stored in the local database, server-side only.
 
 ### Scripts
 
@@ -105,10 +107,16 @@ phase-by-phase implementation plans live in
 - [x] **Phase 2 — Tracking.** Problems board with filters and the reusable
   log-attempt popover; attempt history and status.
 - [x] **Phase 3 — Spaced repetition.** SM-2 scheduling, the due queue, and the
-  Today screen (resume, quick-study, stats, activity heatmap).
+  Today screen (resume, quick-study, stats).
 - [x] **Phase 4 — AI tutor.** Tutor chat per topic, persisted sessions, and
   teach-it-back wired into pattern review.
-- [ ] **Phase 5 — Polish.** Stats screen, weakest-retention suggestions, refinements.
+- [x] **Phase 5 — Polish.** Activity heatmap on Today, weakest-retention
+  "study a pattern" suggestion, and a Stats screen (solved-by-difficulty +
+  per-pattern mastery).
+
+All build phases are complete. **Intentionally deferred** (nice-to-haves, not
+yet built): streaming tutor replies, a problem-scoped tutor, wiring "teach it
+back" into the SRS rating, and a two-column pattern-page layout.
 
 The deep study content (the actual per-pattern guides) is authored as a separate,
 incremental track once the app is running — not part of the build phases.
