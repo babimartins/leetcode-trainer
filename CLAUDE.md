@@ -40,6 +40,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - **Dynamic filter building**: For query functions with optional filters (e.g., `listProblems`), build WHERE conditions conditionally in a `where: string[]` array with a parallel `params: unknown[]` array. Check non-empty values before appending (`if (filters.field) { where.push(...); params.push(...); }`). Join conditions with `AND` and bind all filter values with `?` placeholders — never interpolate strings. Use correlated subqueries (`SELECT ... FROM ... WHERE ... LIMIT 1`) to fetch aggregate/latest related data, and `EXISTS (SELECT 1 FROM ... JOIN ... WHERE ...)` to filter by junction-table relationships with bound parameters. See `lib/db/problemsList.ts` for a complete example.
 - **Upsert pattern**: For insert-or-update operations on unique constraints, use `INSERT ... ON CONFLICT(constraint_col) DO UPDATE SET col = excluded.col` to atomically update fields if the unique constraint is violated. See `lib/db/reviews.ts` and `lib/db/appState.ts` for examples.
 - **Stateful schedule updates**: For spaced-repetition or other state-advancing updates (e.g., `recordReview`), always read the current state first via a getter (e.g., `getReviewState`), compute the next state from it, then upsert. This ensures subsequent reviews correctly advance the schedule — the upsert does not need manual state re-reading between calls.
+- **Idempotent resource-per-scope pattern**: For entities scoped to a composite key (e.g., tutor sessions per `(scope_type, scope_id)`), export a `find*` function returning `T | null` and a `getOrCreate*` function that calls find first and only inserts if not found. This ensures one logical resource per scope, enabling safe reuse. Use a typed scope union for scope values (e.g., `type TutorScope = "pattern" | "problem"`). See `lib/db/tutor.ts` for an example.
 
 ### Pure Algorithm & Utility Modules (`lib/<domain>/`)
 
@@ -48,6 +49,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - Define algorithm constants (e.g., `EASE_FLOOR = 1.3`) at module scope. Create helper functions for repeated numeric operations (e.g., `round2 = (n: number) => Math.round(n * 100) / 100`).
 - For date arithmetic, use `Date.UTC()` for timezone-safe operations and return ISO `YYYY-MM-DD` strings. Test with vitest via `describe` + `it` blocks, asserting exact numeric/string outputs.
 - **Consecutive streak pattern**: For streak queries, fetch all distinct dates as a Set, then walk backward from `today` via `cursor = addDays(cursor, -1)` while `dates.has(cursor)`, incrementing a counter. Stops at the first gap. Ensure today is included only if an attempt exists for it.
+- **External API SDK wrappers**: For LLM or service SDKs (e.g., Anthropic, external APIs), create a thin server-side wrapper in `lib/<domain>/<sdk>.ts` (e.g., `lib/tutor/anthropic.ts`). Export typed interfaces (`TutorTurn`, etc.) and an async function (e.g., `askClaude`) that accepts configuration (apiKey, system, messages) as parameters — never read from environment. Use typed filter guards (e.g., `(block): block is Anthropic.TextBlock => block.type === "text"`) to safely extract response data. This pattern enables testing, keeps secrets server-side only, and avoids client-side SDK imports.
 
 ### Aggregate Query Modules (`lib/db/stats.ts`)
 
@@ -83,6 +85,12 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - **Reusable style objects**: Extract repeated inline style patterns into module-level `const` objects annotated with `as const` (e.g., `const card = { flex: 1, border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" } as const;`). Reuse via object spread: `style={card}` or `style={{ ...card, display: "inline-block" }}`. Keeps styling DRY and composable.
 - **Filter form pattern**: For pages with server-side filtering, use `<form method="get">` with selects/inputs carrying `defaultValue={filters.field}` to persist filters across form submissions. Include a "Clear" link (e.g., `href="/problems"`) to reset to the default unfiltered view.
 
+### Detail Pages (e.g., `/patterns/[slug]`)
+
+- Server components (`export const dynamic = "force-dynamic"`) that load a single resource by slug and render its details.
+- **Loading scoped secondary resources**: When a detail page loads a scoped resource (e.g., a tutor session per pattern), use defensive chaining: call `find*` to get the scope's resource ID (returns `id | null`), then conditionally load related data or provide an empty default. Example: `const sessionId = findTutorSession(db, "pattern", patternId); const messages = sessionId ? listTutorMessages(db, sessionId) : [];`. This pattern avoids crashes and naturally supports create-on-first-access workflows in subsequent mutations.
+- Render secondary sections (e.g., a tutor conversation, related notes) within the main content, before `</main>`, in the order they logically follow the primary content.
+
 ### Server Actions (Mutations)
 
 - Place mutation actions in `lib/<domain>/actions.ts` with `"use server"` directive. Accept `formData: FormData` parameter.
@@ -92,6 +100,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - **Conditional secondary mutations**: If a server action must trigger an optional secondary DB operation based on a validated optional field (e.g., `recordReview` when `rating` is non-null), validate and coerce the optional field early, then check it conditionally before calling the secondary helper: `if (rating) { recordReview(...); }`. This avoids re-parsing and keeps the flow clear.
 - Call DB helpers via `getDb()` and always call `revalidatePath(\`/patterns/${slug}\`)` (or equivalent) after a successful mutation for ISR refresh.
 - **Context-aware revalidation paths**: When a client component (e.g., a form used across multiple pages) needs ISR refresh, pass the revalidation path as a prop (e.g., `revalidate="/patterns/{slug}"`) rather than hardcoding. The component forwards it via a hidden input to the server action. In the server action, accept the optional revalidate field and use a fallback: `const revalidate = String(formData.get("revalidate") ?? "") || "/default/path"; revalidatePath(revalidate);`.
+- **External API failures in server actions**: When calling an external service (e.g., Anthropic, LLM) that may fail, wrap the call in try/catch. On failure, persist a user-visible message (e.g., assistant message, note) to the database instead of returning an error or crashing. For missing configuration (e.g., API key), validate before the call and persist a friendly "configure this in Settings" message. Always call `revalidatePath()` regardless of success or failure to ensure UI stays in sync. See `lib/tutor/actions.ts` for a complete example.
 
 ### Client Components (Interactive UI)
 
