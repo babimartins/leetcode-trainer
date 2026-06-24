@@ -16,13 +16,14 @@ usually live in separate places:
 Plus a typed **AI tutor** per topic — ask questions, get quizzed, or explain a
 concept back (Feynman-style "teach it back") and have it tell you what you missed.
 
-> **Status:** Phases 0–3 are complete. The app runs with navigation, a database,
+> **Status:** Phases 0–4 are complete. The app runs with navigation, a database,
 > and a Settings screen; a pattern reading experience with syntax-highlighted
 > content and section-level notes; practice tracking — a filterable Problems
-> board and a reusable log-attempt popover; and spaced repetition — SM-2
-> scheduling, a Review queue, and a Today screen with streak, stats, and the
-> day's due items. The AI tutor and final polish are still to come — see the
-> [Roadmap](#roadmap).
+> board and a reusable log-attempt popover; spaced repetition — SM-2 scheduling,
+> a Review queue, and a Today screen with streak, stats, and the day's due items;
+> and an AI tutor on each pattern page (grounded in that pattern's notes, with a
+> "Teach it back" mode) backed by your Anthropic API key. Only the final polish
+> (Phase 5) is left — see the [Roadmap](#roadmap).
 
 ## Tech stack
 
@@ -105,7 +106,7 @@ phase-by-phase implementation plans live in
   log-attempt popover; attempt history and status.
 - [x] **Phase 3 — Spaced repetition.** SM-2 scheduling, the due queue, and the
   Today screen (resume, quick-study, stats, activity heatmap).
-- [ ] **Phase 4 — AI tutor.** Tutor chat per topic, persisted sessions, and
+- [x] **Phase 4 — AI tutor.** Tutor chat per topic, persisted sessions, and
   teach-it-back wired into pattern review.
 - [ ] **Phase 5 — Polish.** Stats screen, weakest-retention suggestions, refinements.
 
