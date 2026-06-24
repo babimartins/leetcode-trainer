@@ -13,6 +13,13 @@ import {
 import { buildTutorSystem } from "@/lib/tutor/prompt";
 import { askClaude, type TutorTurn } from "@/lib/tutor/anthropic";
 
+// Canned tutor replies. Shown to the user, but excluded from the history sent
+// back to Claude so they never pollute the conversation on a later turn.
+const NO_KEY_MESSAGE =
+  "No Anthropic API key is set. Add one in Settings to chat with the tutor.";
+const ERROR_MESSAGE =
+  "Sorry — the tutor request failed. Please try again; if it persists, check your API key in Settings.";
+
 export async function sendTutorMessageAction(
   formData: FormData
 ): Promise<void> {
@@ -29,29 +36,25 @@ export async function sendTutorMessageAction(
 
   const apiKey = getAppState(db, "anthropic_api_key");
   if (!apiKey) {
-    addTutorMessage(
-      db,
-      sessionId,
-      "assistant",
-      "No Anthropic API key is set. Add one in Settings to chat with the tutor."
-    );
+    addTutorMessage(db, sessionId, "assistant", NO_KEY_MESSAGE);
     revalidatePath("/patterns/" + slug);
     return;
   }
 
   const system = buildTutorSystem(pattern.name, loadPatternContent(slug) ?? "");
-  const history: TutorTurn[] = listTutorMessages(db, sessionId).map((m) => ({
-    role: m.role === "assistant" ? "assistant" : "user",
-    content: m.content,
-  }));
+  const history: TutorTurn[] = listTutorMessages(db, sessionId)
+    .filter((m) => m.content !== NO_KEY_MESSAGE && m.content !== ERROR_MESSAGE)
+    .map((m) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content,
+    }));
 
   let reply: string;
   try {
     reply = await askClaude({ apiKey, system, messages: history });
   } catch (err) {
     console.error("Tutor request failed:", err);
-    reply =
-      "Sorry — the tutor request failed. Check your API key in Settings and try again.";
+    reply = ERROR_MESSAGE;
   }
 
   addTutorMessage(db, sessionId, "assistant", reply || "(no response)");
