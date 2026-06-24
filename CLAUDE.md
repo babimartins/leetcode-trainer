@@ -34,6 +34,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 
 - Each table gets a dedicated helper module (e.g., `lib/db/patterns.ts`, `lib/db/appState.ts`): export a `*Row` interface and query functions.
 - Query functions take `db: Database.Database` as the first parameter (enables passing in-memory test databases). Cast results to the row interface using `as RowType` — never `any`.
+- **Field naming**: In result interfaces, preserve snake_case from the database column names (e.g., `interval_days`, `item_type`) rather than normalizing to camelCase — this keeps the interface aligned with the actual database schema.
 - Tests create an in-memory SQLite db (`new Database(":memory:")`), create tables inline via `db.exec()`, and exercise the helpers. Use `beforeEach` to reset state.
 - **Atomic multi-step updates**: Use `db.transaction(...)` to ensure related writes happen atomically (e.g., `logAttempt` inserts an attempt and updates problem status together). Declare the tx function, call it, and return the result.
 - **Traversing relationships via JOIN**: To query across a junction table (e.g., `listProblemsForPattern` joins `problem_patterns` to `problems`), alias the tables in the SQL, select columns with table prefix, and return a `Row` interface matching all fetched columns. See `lib/db/problemsForPattern.ts` for an example.
@@ -56,6 +57,8 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - For derived metrics (counts, streaks, latest records), create a dedicated `stats.ts` module. Export typed result interfaces (e.g., `ResumeProblem`) and query functions that take `db: Database.Database`.
 - Cast COUNT query results to `{ c: number }` and access `.c` property. For row-returning queries, cast to the result interface and return `row ?? null` for optional single results.
 - Test aggregate queries with in-memory databases and seed data via `beforeEach`, asserting numeric/object results exactly.
+- **Polymorphic entity filtering in JOINs**: When joining a polymorphic table (e.g., `reviews` storing both problems and patterns) to filter one entity type, use a composite ON clause: `JOIN reviews r ON r.item_type = 'pattern' AND r.item_id = pa.id`. This is clearer than UNION ALL when querying a single entity type and handles LEFT JOINs (yielding nulls for unreviewed entities) more naturally.
+- **Multi-level ranking with fallback**: For queries that rank entities by a primary criterion then tie-break by secondary criteria before falling back to a default ordering, use ORDER BY with multiple columns in priority order, then LIMIT 1 for optional results or LIMIT 1 with OFFSET/fallback for guaranteed results. Example: rank patterns by lowest review ease, break ties by earliest due_date, fallback to first pattern by (ordering, name), return null only if no patterns exist. Test all three branches (normal rank, tie-break, fallback, and null cases) separately.
 
 ### Markdown & Code Highlighting
 
@@ -83,6 +86,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - Each link displays bold name + muted metadata (status, count, etc.) side-by-side using flexbox.
 - Use inline styles with CSS variables (`var(--border)`, `var(--muted)`, `var(--fg)`) for theming consistency.
 - **Reusable style objects**: Extract repeated inline style patterns into module-level `const` objects annotated with `as const` (e.g., `const card = { flex: 1, border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" } as const;`). Reuse via object spread: `style={card}` or `style={{ ...card, display: "inline-block" }}`. Keeps styling DRY and composable.
+- **Null-guarding numeric/optional fields**: When rendering optional numeric fields (e.g., SRS `interval_days`), use `field != null ? format(field) : fallback` instead of `??`, because `??` would coalesce `0` to the fallback but `0` is a valid value. Reserve `??` for non-numeric optional fields (e.g., `ease ?? "—"`). This ensures 0-valued fields display correctly.
 - **Filter form pattern**: For pages with server-side filtering, use `<form method="get">` with selects/inputs carrying `defaultValue={filters.field}` to persist filters across form submissions. Include a "Clear" link (e.g., `href="/problems"`) to reset to the default unfiltered view.
 
 ### Detail Pages (e.g., `/patterns/[slug]`)
