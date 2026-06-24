@@ -12,6 +12,7 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1",
     "better-sqlite3": "^11.8.0",
     "highlight.js": "^11.11.1",
     "next": "^15.1.0",

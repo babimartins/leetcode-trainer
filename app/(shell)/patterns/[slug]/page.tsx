@@ -10,6 +10,9 @@ import { addNoteAction, deleteNoteAction } from "@/lib/notes/actions";
 import { LogAttemptForm } from "@/components/LogAttemptForm";
 import { logAttemptAction } from "@/lib/attempts/actions";
 import { recordPatternReviewAction } from "@/lib/reviews/actions";
+import { findTutorSession, listTutorMessages } from "@/lib/db/tutor";
+import { TutorPanel } from "@/components/TutorPanel";
+import { sendTutorMessageAction } from "@/lib/tutor/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +30,10 @@ export default async function PatternDetailPage({
   const sections = content ? splitSections(content) : [];
   const notes = listNotesForPattern(db, pattern.id);
   const problems = listProblemsForPattern(db, pattern.id);
+  const tutorSessionId = findTutorSession(db, "pattern", pattern.id);
+  const tutorMessages = tutorSessionId
+    ? listTutorMessages(db, tutorSessionId)
+    : [];
   const notesBySection = new Map<string, NoteRow[]>();
   for (const n of notes) {
     const list = notesBySection.get(n.section_key) ?? [];
@@ -148,6 +155,11 @@ export default async function PatternDetailPage({
           )}
         </div>
       </section>
+      <TutorPanel
+        slug={slug}
+        messages={tutorMessages}
+        action={sendTutorMessageAction}
+      />
     </main>
   );
 }
