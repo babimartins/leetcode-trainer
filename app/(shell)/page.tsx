@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getDb } from "@/lib/db/connection";
 import { getDueItems } from "@/lib/db/reviews";
-import { todayIso } from "@/lib/srs/dates";
+import { todayIso, addDays } from "@/lib/srs/dates";
 import {
   dueCount,
   solvedCount,
@@ -9,6 +9,10 @@ import {
   currentStreak,
   lastAttemptedProblem,
 } from "@/lib/db/stats";
+import { attemptCountsByDay } from "@/lib/db/activity";
+import { buildHeatmap } from "@/lib/heatmap/grid";
+import { Heatmap } from "@/components/Heatmap";
+import { weakestPattern } from "@/lib/db/weakest";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +32,12 @@ export default function TodayPage() {
   const streak = currentStreak(db, today);
   const resume = lastAttemptedProblem(db);
   const dueItems = getDueItems(db, today).slice(0, 5);
+  const heatmapCells = buildHeatmap(
+    attemptCountsByDay(db, addDays(today, -90)),
+    today,
+    13
+  );
+  const weakest = weakestPattern(db);
 
   return (
     <main style={{ padding: 24, maxWidth: 760 }}>
@@ -72,8 +82,14 @@ export default function TodayPage() {
       </div>
 
       <div style={{ marginBottom: 18 }}>
-        <Link href="/patterns" style={{ ...card, display: "inline-block", flex: "none" }}>
+        <Link
+          href={weakest ? `/patterns/${weakest.slug}` : "/patterns"}
+          style={{ ...card, display: "inline-block", flex: "none" }}
+        >
           Study a pattern →
+          {weakest && (
+            <span style={{ color: "var(--muted)", fontWeight: 400 }}> {weakest.name}</span>
+          )}
         </Link>
       </div>
 
@@ -94,6 +110,8 @@ export default function TodayPage() {
           ))}
         </div>
       )}
+      <div style={{ marginTop: 24, fontWeight: 700, marginBottom: 8 }}>Activity</div>
+      <Heatmap cells={heatmapCells} />
     </main>
   );
 }
