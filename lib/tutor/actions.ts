@@ -48,7 +48,8 @@ export async function sendTutorMessageAction(
   let reply: string;
   try {
     reply = await askClaude({ apiKey, system, messages: history });
-  } catch {
+  } catch (err) {
+    console.error("Tutor request failed:", err);
     reply =
       "Sorry — the tutor request failed. Check your API key in Settings and try again.";
   }
