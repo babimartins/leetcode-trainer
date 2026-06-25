@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type Database from "better-sqlite3";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
   studyStats,
   weakestPatterns,
@@ -18,12 +19,7 @@ export interface StudyContext {
   today: () => string;
 }
 
-interface TextResult {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-}
-
-function run(produce: () => unknown): TextResult {
+function run(produce: () => unknown): CallToolResult {
   try {
     return { content: [{ type: "text", text: JSON.stringify(produce(), null, 2) }] };
   } catch (err) {
