@@ -42,6 +42,7 @@ This project uses **agentic task-driven development**. Work is structured as seq
 - **Upsert pattern**: For insert-or-update operations on unique constraints, use `INSERT ... ON CONFLICT(constraint_col) DO UPDATE SET col = excluded.col` to atomically update fields if the unique constraint is violated. See `lib/db/reviews.ts` and `lib/db/appState.ts` for examples.
 - **Stateful schedule updates**: For spaced-repetition or other state-advancing updates (e.g., `recordReview`), always read the current state first via a getter (e.g., `getReviewState`), compute the next state from it, then upsert. This ensures subsequent reviews correctly advance the schedule — the upsert does not need manual state re-reading between calls.
 - **Idempotent resource-per-scope pattern**: For entities scoped to a composite key (e.g., tutor sessions per `(scope_type, scope_id)`), export a `find*` function returning `T | null` and a `getOrCreate*` function that calls find first and only inserts if not found. This ensures one logical resource per scope, enabling safe reuse. Use a typed scope union for scope values (e.g., `type TutorScope = "pattern" | "problem"`). See `lib/db/tutor.ts` for an example.
+- **Resolve-by-identifier-then-name pattern**: When fetching a record by slug OR human-readable name, create a private `resolve*` helper that tries the direct ID lookup first, then falls back to a case-insensitive full-list scan. Return `T | null`. Reuse this resolver across multiple public functions (e.g., `getPattern()`, `listNotes()`) to avoid duplicating the dual-lookup logic. See `mcp/studyData.ts` `resolvePattern()` for an example.
 
 ### Pure Algorithm & Utility Modules (`lib/<domain>/`)
 
@@ -71,6 +72,17 @@ This project uses **agentic task-driven development**. Work is structured as seq
 
 - When parsing Markdown headers to extract sections, derive `section_key` via `slugify()` — lowercase, collapse non-alphanumeric runs to single hyphens, trim leading/trailing hyphens.
 - Content before the first `##` heading is always a leading overview section with hardcoded `key: "overview"` (omitted if empty/whitespace). See `lib/content/sections.ts` for reference.
+
+### Standalone TypeScript Modules (e.g., `mcp/db.ts`)
+
+- For modules run outside the Next.js app via `tsx` (e.g., MCP server, CLI tools), resolve paths relative to the repo root using `import.meta.url`: `const HERE = path.dirname(fileURLToPath(import.meta.url)); export const REPO_ROOT = path.resolve(HERE, "..")`. This works because `tsx` supports ESM and resolves `import.meta.url` correctly at runtime.
+- Export module-level constants for shared paths (e.g., `DEFAULT_DB_PATH`, `CONTENT_PATTERNS_DIR`). Accept optional `dbPath` parameters with `process.env.VAR || DEFAULT_CONST` fallback, enabling environment overrides for testing.
+- Throw friendly errors for missing resources, mentioning the exact setup command (e.g., `npm run migrate`).
+- Test with `beforeEach`/`afterEach` creating temporary directories and in-memory fixtures (e.g., SQLite), not committed fixtures.
+- **MCP tool registration**: Create a `registerAll(server, context)` function that registers all tools and prompts on an `McpServer`. Use a context object (e.g., `{ openDb: () => Database, today: () => string }`) to inject dependencies. Wrap each tool handler with a `run()` helper that catches errors, serializes results to JSON text content, and returns `{ content: [...], isError: boolean }` for consistent error handling across the MCP SDK.
+- **MCP server entry point**: In `server.ts`, use lazy memoization for the read-only DB connection (module-level `cached` variable, lazily opened on first call). Log only to `console.error` (stderr); stdout must remain clean for the JSON-RPC channel. Import SDK types with `.js` suffixes for ESM.
+- **MCP server unit testing**: Use `InMemoryTransport.createLinkedPair()` to test MCP servers in-process: create a linked pair of in-memory transports, connect the server to one and the SDK `Client` to the other. Create an in-memory SQLite database for the test, register tools/prompts, then use the client to call `listTools()`, `listPrompts()`, and `callTool()` to verify behavior. This avoids subprocess overhead while validating the full SDK integration. See `mcp/register.test.ts` for a complete example.
+- **Claude Desktop MCP integration**: For user-facing MCP servers, document setup in `mcp/README.md` with verbatim `claude_desktop_config.json` snippet including absolute paths (`cwd` to repo root, `DSA_DB_PATH` env var to the database file). Use `npx tsx mcp/server.ts` as the command. Include troubleshooting for path resolution and connection reopen. Commit both `mcp/README.md` and a brief section in the root `README.md` (before `## License`) explaining the feature and linking to `mcp/README.md`.
 
 ### Content Loader Functions
 
