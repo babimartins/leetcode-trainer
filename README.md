@@ -121,6 +121,14 @@ back" into the SRS rating, and a two-column pattern-page layout.
 The deep study content (the actual per-pattern guides) is authored as a separate,
 incremental track once the app is running — not part of the build phases.
 
+## Study connector (MCP)
+
+A local, read-only Model Context Protocol server (in `mcp/`) lets the **Claude
+desktop app** read your live study data and answer questions about your patterns,
+problems, weak areas, notes, and stats — grounded in your own material, on your
+Claude subscription (no API credits), with no ability to modify anything. See
+[`mcp/README.md`](mcp/README.md) for the one-time Claude Desktop setup.
+
 ## License
 
 Personal project. No license granted yet.
