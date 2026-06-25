@@ -8,6 +8,13 @@ import {
   type RecentAttempt,
   type PatternWithReview,
 } from "@/mcp/queries";
+import { listPatterns, getPatternBySlug, type PatternRow } from "@/lib/db/patterns";
+import { listNotesForPattern, type NoteRow } from "@/lib/db/notes";
+import { listProblemsForPattern, type ProblemRow } from "@/lib/db/problemsForPattern";
+import { listProblems, type ProblemFilters, type ProblemListRow } from "@/lib/db/problemsList";
+import { listAllNotes, type NoteWithPattern } from "@/mcp/queries";
+import { loadPatternContent } from "@/lib/content/loadPattern";
+import { CONTENT_PATTERNS_DIR } from "@/mcp/db";
 
 export interface StudyStats {
   solved: number;
@@ -56,4 +63,64 @@ export function recentActivity(
   limit = 20
 ): RecentAttempt[] {
   return listRecentAttempts(db, limit);
+}
+
+function resolvePattern(db: Database.Database, query: string): PatternRow | null {
+  const bySlug = getPatternBySlug(db, query);
+  if (bySlug) return bySlug;
+  const lower = query.trim().toLowerCase();
+  return (
+    listPatterns(db).find(
+      (p) => p.name.toLowerCase() === lower || p.slug.toLowerCase() === lower
+    ) ?? null
+  );
+}
+
+export interface PatternDetail {
+  pattern: PatternRow;
+  material: string | null;
+  notes: NoteRow[];
+  problems: ProblemRow[];
+}
+
+export function getPattern(
+  db: Database.Database,
+  query: string,
+  contentDir: string = CONTENT_PATTERNS_DIR
+): PatternDetail {
+  const pattern = resolvePattern(db, query);
+  if (!pattern) {
+    throw new Error(
+      `No pattern named "${query}". Use the list_patterns tool to see available patterns.`
+    );
+  }
+  return {
+    pattern,
+    material: loadPatternContent(pattern.slug, contentDir),
+    notes: listNotesForPattern(db, pattern.id),
+    problems: listProblemsForPattern(db, pattern.id),
+  };
+}
+
+export function listNotes(
+  db: Database.Database,
+  patternSlug?: string
+): NoteRow[] | NoteWithPattern[] {
+  if (patternSlug && patternSlug.trim()) {
+    const pattern = resolvePattern(db, patternSlug);
+    if (!pattern) {
+      throw new Error(
+        `No pattern named "${patternSlug}". Use the list_patterns tool to see available patterns.`
+      );
+    }
+    return listNotesForPattern(db, pattern.id);
+  }
+  return listAllNotes(db);
+}
+
+export function listProblemsTool(
+  db: Database.Database,
+  filters: ProblemFilters
+): ProblemListRow[] {
+  return listProblems(db, filters);
 }
